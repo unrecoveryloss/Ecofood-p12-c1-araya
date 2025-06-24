@@ -8,13 +8,17 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
-  const [tipo, setTipo] = useState("cliente");
+  const [tipo] =  useState("cliente");
+  const [direccion, setDireccion] = useState("");
+  const [comuna, setComuna] = useState("");
+  const [telefono, setTelefono] = useState("");
   const navigate = useNavigate();
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await saveUserData(cred.user.uid, { nombre, tipo, email });
+      console.log({ nombre, tipo, email, direccion, comuna, telefono })
+      await saveUserData(cred.user.uid, { nombre, tipo, email, direccion, comuna, telefono });
       Swal.fire("Registrado", "Usuario creado correctamente", "success");
       navigate("/login");
       // eslint-disable-next-line no-unused-vars
@@ -56,21 +60,41 @@ export default function Register() {
             required
           />
         </div>
+        //funcion para contraseña robusta
         <div className="mb-3">
-          <label className="form-label">Tipo de usuario</label>
-          <select
-            className="form-select"
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
-          >
-            <option value="cliente">Cliente</option>
-            <option value="empresa">Empresa</option>
-            <option value="admin">Administrador</option>
-          </select>
+          <label className="form-label">Dirección</label>
+          <input
+            type="text"
+            className="form-control"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+            required
+          />
         </div>
+        <div className="mb-3">
+          <label className="form-label">Comuna</label>
+          <input
+            type="text"
+            className="form-control"
+            value={comuna}
+            onChange={(e) => setComuna(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Teléfono (opcional)</label>
+          <input
+            type="text"
+            className="form-control"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+          />
+        </div>
+        
         <button type="submit" className="btn btn-success">
           Registrar
         </button>
+        
       </form>
     </div>
   );
