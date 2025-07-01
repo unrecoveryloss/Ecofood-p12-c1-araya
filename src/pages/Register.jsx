@@ -18,7 +18,6 @@ export default function Register() {
   const [telefono, setTelefono] = useState("");
   const navigate = useNavigate();
 
-  // ✅ Validación estricta de contraseña
   function validarPassword(contraseña) {
     const minLength = 8;
     const tieneMayuscula = /[A-Z]/.test(contraseña);

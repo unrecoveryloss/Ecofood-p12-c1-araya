@@ -4,8 +4,10 @@ import {
   signInWithEmailAndPassword,
   setPersistence,
   browserLocalPersistence,
+  sendEmailVerification,
 } from "firebase/auth";
-import { auth } from "../services/firebase";
+import { auth, db } from "../services/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
 
 export default function Login() {
@@ -17,9 +19,47 @@ export default function Login() {
     e.preventDefault();
     try {
       await setPersistence(auth, browserLocalPersistence);
-      await signInWithEmailAndPassword(auth, email, password);
-      Swal.fire("Bienvenido", "Has iniciado sesión correctamente", "success");
-      navigate("/home");
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+
+      if (!cred.user.emailVerified) {
+        const result = await Swal.fire({
+          title: "Verificación pendiente",
+          text: "Tu correo aún no ha sido verificado. ¿Deseas reenviar el correo de verificación?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Reenviar",
+          cancelButtonText: "Cancelar",
+        });
+
+        if (result.isConfirmed) {
+          await sendEmailVerification(cred.user);
+          Swal.fire(
+            "Correo enviado",
+            "Revisa tu bandeja de entrada o carpeta de spam.",
+            "success"
+          );
+        }
+
+        return;
+      }
+
+      const ref = doc(db, "usuarios", cred.user.uid);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        Swal.fire("Error", "No se encontraron los datos del usuario", "error");
+        return;
+      }
+
+      const userData = snap.data();
+
+      if (userData.tipo === "admin") {
+        navigate("/admin/dashboard");
+      } else if (userData.tipo === "cliente") {
+        navigate("/cliente/dashboard");
+      } else {
+        Swal.fire("Error", "Rol de usuario desconocido", "error");
+      }
     } catch (error) {
       Swal.fire("Error", "Credenciales incorrectas o fallo de red", "error");
     }

@@ -3,21 +3,81 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Home from "../pages/Home";
 import ProtectedRoute from "./ProtectedRoute";
-import ResetPassword from "../pages/ResetPassword";
+import AdminRoute from "./AdminRoute";
+import ClienteDashboard from "../pages/ClienteDashboard";
+import AdminDashboard from "../pages/AdminDashboard";
+import AdminAdministradores from "../pages/AdminAdministradores";
+import AdminClientes from "../pages/AdminClientes";
+import AdminEmpresas from "../pages/AdminEmpresas";
+import AdminProductos from "../pages/AdminProductos";
 
 export default function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/" element={<Login />} />
       <Route path="/registro" element={<Register />} />
+      <Route path="/" element={<Login />} />
+
       <Route
         path="/home"
         element={
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/cliente/dashboard"
+        element={
+          <ProtectedRoute>
+            <ClienteDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/clientes"
+        element={
+          <AdminRoute>
+            <AdminClientes />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/empresas"
+        element={
+          <AdminRoute>
+            <AdminEmpresas />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/administradores"
+        element={
+          <AdminRoute>
+            <AdminAdministradores />
+          </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/admin/productos"
+        element={
+          <AdminRoute>
+            <AdminProductos />
+          </AdminRoute>
         }
       />
     </Routes>
