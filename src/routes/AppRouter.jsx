@@ -10,6 +10,9 @@ import AdminAdministradores from "../pages/AdminAdministradores";
 import AdminClientes from "../pages/AdminClientes";
 import AdminEmpresas from "../pages/AdminEmpresas";
 import AdminProductos from "../pages/AdminProductos";
+import EmpresaDashboard from "../pages/EmpresaDashboard";
+import EmpresaPerfil from "../pages/EmpresaPerfil";
+import EmpresaProductos from "../pages/EmpresaProductos";
 
 export default function AppRouter() {
   return (
@@ -78,6 +81,31 @@ export default function AppRouter() {
           <AdminRoute>
             <AdminProductos />
           </AdminRoute>
+        }
+      />
+      <Route
+        path="/empresa/dashboard"
+        element={
+          <ProtectedRoute>
+            <EmpresaDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/empresa/perfil"
+        element={
+          <ProtectedRoute>
+            <EmpresaPerfil />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresa/productos"
+        element={
+          <ProtectedRoute>
+            <EmpresaProductos />
+          </ProtectedRoute>
         }
       />
     </Routes>

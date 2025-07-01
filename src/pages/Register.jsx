@@ -50,8 +50,6 @@ export default function Register() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      await sendEmailVerification(cred.user);
-
       await saveUserData(cred.user.uid, {
         nombre,
         tipo,
@@ -61,15 +59,25 @@ export default function Register() {
         telefono,
       });
 
-      Swal.fire(
-        "Verifica tu correo",
-        "Se ha enviado un correo de verificación. Por favor, verifica tu cuenta antes de iniciar sesión.",
-        "info"
-      );
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+        Swal.fire(
+          "Verifica tu correo",
+          "Se ha enviado un correo de verificación. Por favor, revisa tu bandeja de entrada.",
+          "info"
+        );
+      } else {
+        Swal.fire(
+          "Error",
+          "No se pudo enviar el correo de verificación. Intenta iniciar sesión manualmente.",
+          "error"
+        );
+      }
 
       navigate("/login");
     } catch (error) {
-      Swal.fire("Error", "No se pudo registrar", "error");
+      console.error("Error al registrar:", error);
+      Swal.fire("Error", error.message || "No se pudo registrar", "error");
     }
   };
 
@@ -80,7 +88,6 @@ export default function Register() {
         <div className="mb-3">
           <label className="form-label">Nombre completo</label>
           <input
-            id="nombreRegister"
             type="text"
             className="form-control"
             value={nombre}
@@ -91,7 +98,6 @@ export default function Register() {
         <div className="mb-3">
           <label className="form-label">Correo</label>
           <input
-            id="correoRegister"
             type="email"
             className="form-control"
             value={email}
@@ -102,7 +108,6 @@ export default function Register() {
         <div className="mb-3">
           <label className="form-label">Contraseña</label>
           <input
-            id="contraseñaRegister"
             type="password"
             className="form-control"
             value={password}
@@ -113,7 +118,6 @@ export default function Register() {
         <div className="mb-3">
           <label className="form-label">Dirección</label>
           <input
-            id="direccionRegister"
             type="text"
             className="form-control"
             value={direccion}
@@ -157,9 +161,18 @@ export default function Register() {
           />
         </div>
 
-        <button type="submit" className="btn btn-success">
-          Registrar
-        </button>
+        <div className="d-flex gap-2">
+          <button type="submit" className="btn btn-success">
+            Registrar
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => navigate("/login")}
+          >
+            Volver al Login
+          </button>
+        </div>
       </form>
     </div>
   );

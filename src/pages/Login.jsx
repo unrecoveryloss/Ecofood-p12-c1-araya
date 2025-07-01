@@ -57,6 +57,8 @@ export default function Login() {
         navigate("/admin/dashboard");
       } else if (userData.tipo === "cliente") {
         navigate("/cliente/dashboard");
+      } else if (userData.tipo === "empresa") {
+        navigate("/empresa/dashboard");
       } else {
         Swal.fire("Error", "Rol de usuario desconocido", "error");
       }

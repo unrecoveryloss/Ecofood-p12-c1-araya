@@ -1,5 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "../services/firebase";
 
 export default function AdminRoute({ children }) {
   const { user, userData, loading } = useAuth();
@@ -13,10 +15,13 @@ export default function AdminRoute({ children }) {
       <div className="container mt-5 text-center">
         <h4>No tienes permisos para acceder a esta sección.</h4>
         <button
-          className="btn btn-primary mt-3"
-          onClick={() => (window.location.href = "/home")}
+          className="btn btn-danger mt-3"
+          onClick={() => {
+            signOut(auth);
+            window.location.href = "/login";
+          }}
         >
-          Ir al Home
+          Cerrar sesión
         </button>
       </div>
     );
