@@ -13,6 +13,7 @@ import AdminProductos from "../pages/AdminProductos";
 import EmpresaDashboard from "../pages/EmpresaDashboard";
 import EmpresaPerfil from "../pages/EmpresaPerfil";
 import EmpresaProductos from "../pages/EmpresaProductos";
+import ResetPassword from "../pages/ResetPassword"
 
 export default function AppRouter() {
   return (
@@ -20,6 +21,8 @@ export default function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Register />} />
       <Route path="/" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
 
       <Route
         path="/home"

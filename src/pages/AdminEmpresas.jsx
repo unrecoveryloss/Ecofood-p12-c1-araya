@@ -6,8 +6,14 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import { auth, db } from "../services/firebase";
+import { auth, db, firebaseConfig } from "../services/firebase"; 
 import {
+  initializeApp,
+  getApps,
+  getApp,
+} from "firebase/app";
+import {
+  getAuth,
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
@@ -24,6 +30,11 @@ export default function AdminEmpresas() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const secondaryApp =
+    getApps().find((app) => app.name === "Secondary") ||
+    initializeApp(firebaseConfig, "Secondary");
+  const secondaryAuth = getAuth(secondaryApp);
 
   const fetchEmpresas = async () => {
     try {
@@ -59,7 +70,11 @@ export default function AdminEmpresas() {
 
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(
+        secondaryAuth,
+        email,
+        password
+      );
       await sendEmailVerification(cred.user);
 
       await setDoc(doc(db, "usuarios", cred.user.uid), {
@@ -71,6 +86,8 @@ export default function AdminEmpresas() {
         tipo: "empresa",
         estado: "activa",
       });
+
+      await secondaryAuth.signOut();
 
       Swal.fire(
         "Empresa creada",
