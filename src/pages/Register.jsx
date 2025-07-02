@@ -93,6 +93,7 @@ export default function Register() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             required
+            maxLength={40}  
           />
         </div>
         <div className="mb-3">
@@ -103,6 +104,7 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            maxLength={40} 
           />
         </div>
         <div className="mb-3">
@@ -113,6 +115,7 @@ export default function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            maxLength={40} 
           />
         </div>
         <div className="mb-3">
@@ -123,6 +126,7 @@ export default function Register() {
             value={direccion}
             onChange={(e) => setDireccion(e.target.value)}
             required
+            maxLength={40} 
           />
         </div>
         <div className="mb-3">
@@ -158,6 +162,7 @@ export default function Register() {
             className="form-control"
             value={telefono}
             onChange={(e) => setTelefono(e.target.value)}
+            maxLength={40} 
           />
         </div>
 

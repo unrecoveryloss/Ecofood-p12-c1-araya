@@ -79,6 +79,7 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            maxLength={40} 
           />
         </div>
         <div className="mb-3">
@@ -89,6 +90,7 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            maxLength={40} 
           />
         </div>
         <button type="submit" className="btn btn-primary me-2">

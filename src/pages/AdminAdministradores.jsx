@@ -199,6 +199,7 @@ export default function AdminAdministradores() {
                     value={form.nombre}
                     onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                     required
+                    maxLength={40} 
                   />
                 </div>
                 <div className="mb-3">
@@ -209,6 +210,7 @@ export default function AdminAdministradores() {
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     required
+                    maxLength={40} 
                   />
                 </div>
               </div>
