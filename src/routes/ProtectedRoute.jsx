@@ -14,16 +14,29 @@ export default function ProtectedRoute({ children }) {
     setChecking(false);
   }, [user]);
 
-  if (checking) return <p className="text-center mt-5">Cargando...</p>;
+  if (checking) {
+    return (
+      <div className="container mt-5">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <p className="mt-2">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
 
   if (!verified) {
+    // Redirigir a la página de verificación con una interfaz consistente
     return (
-      <div className="container mt-5 text-center">
-        <h4>Debes verificar tu correo electrónico para acceder.</h4>
-        <p>Revisa tu bandeja de entrada o carpeta de spam.</p>
-      </div>
+      <Navigate
+        to={`/email-verification?email=${encodeURIComponent(user.email)}`}
+      />
     );
   }
 

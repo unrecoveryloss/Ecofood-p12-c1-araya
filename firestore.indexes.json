@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "solicitudes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clienteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaSolicitud",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "solicitudes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "empresaId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechaSolicitud",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "empresaId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "productos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cantidad",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "precio",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+} 

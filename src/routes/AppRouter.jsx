@@ -5,15 +5,21 @@ import Home from "../pages/Home";
 import ProtectedRoute from "./ProtectedRoute";
 import AdminRoute from "./AdminRoute";
 import ClienteDashboard from "../pages/ClienteDashboard";
+import ClienteProductos from "../pages/ClienteProductos";
+import ClienteSolicitudes from "../pages/ClienteSolicitudes";
+import ClientePerfil from "../pages/ClientePerfil";
 import AdminDashboard from "../pages/AdminDashboard";
 import AdminAdministradores from "../pages/AdminAdministradores";
 import AdminClientes from "../pages/AdminClientes";
 import AdminEmpresas from "../pages/AdminEmpresas";
 import AdminProductos from "../pages/AdminProductos";
+import AdminUsuarios from "../pages/AdminUsuarios";
 import EmpresaDashboard from "../pages/EmpresaDashboard";
 import EmpresaPerfil from "../pages/EmpresaPerfil";
 import EmpresaProductos from "../pages/EmpresaProductos";
-import ResetPassword from "../pages/ResetPassword"
+import EmpresaSolicitudes from "../pages/EmpresaSolicitudes";
+import ResetPassword from "../pages/ResetPassword";
+import EmailVerification from "../pages/EmailVerification";
 
 export default function AppRouter() {
   return (
@@ -22,7 +28,7 @@ export default function AppRouter() {
       <Route path="/registro" element={<Register />} />
       <Route path="/" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-
+      <Route path="/email-verification" element={<EmailVerification />} />
 
       <Route
         path="/home"
@@ -38,6 +44,33 @@ export default function AppRouter() {
         element={
           <ProtectedRoute>
             <ClienteDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/cliente/productos"
+        element={
+          <ProtectedRoute>
+            <ClienteProductos />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/cliente/solicitudes"
+        element={
+          <ProtectedRoute>
+            <ClienteSolicitudes />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/cliente/perfil"
+        element={
+          <ProtectedRoute>
+            <ClientePerfil />
           </ProtectedRoute>
         }
       />
@@ -86,6 +119,16 @@ export default function AppRouter() {
           </AdminRoute>
         }
       />
+
+      <Route
+        path="/admin/usuarios"
+        element={
+          <AdminRoute>
+            <AdminUsuarios />
+          </AdminRoute>
+        }
+      />
+
       <Route
         path="/empresa/dashboard"
         element={
@@ -108,6 +151,15 @@ export default function AppRouter() {
         element={
           <ProtectedRoute>
             <EmpresaProductos />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/empresa/solicitudes"
+        element={
+          <ProtectedRoute>
+            <EmpresaSolicitudes />
           </ProtectedRoute>
         }
       />

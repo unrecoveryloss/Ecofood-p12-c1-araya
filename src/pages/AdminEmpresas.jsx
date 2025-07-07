@@ -9,11 +9,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { auth, db, firebaseConfig } from "../services/firebase";
-import {
-  initializeApp,
-  getApps,
-  getApp,
-} from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -24,14 +20,23 @@ import { useNavigate } from "react-router-dom";
 
 export default function AdminEmpresas() {
   const [empresas, setEmpresas] = useState([]);
-  const [nombre, setNombre] = useState("");
-  const [rut, setRut] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [direccion, setDireccion] = useState("");
-  const [password, setPassword] = useState("");
+  const [empresasFiltradas, setEmpresasFiltradas] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [empresaId, setEmpresaId] = useState(null); // Para editar la empresa seleccionada
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editarEmpresa, setEditarEmpresa] = useState(null);
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+
+  // Estados del formulario
+  const [formData, setFormData] = useState({
+    nombre: "",
+    rut: "",
+    email: "",
+    telefono: "",
+    direccion: "",
+    password: "",
+  });
+
   const navigate = useNavigate();
 
   const secondaryApp =
@@ -39,7 +44,8 @@ export default function AdminEmpresas() {
     initializeApp(firebaseConfig, "Secondary");
   const secondaryAuth = getAuth(secondaryApp);
 
-  const fetchEmpresas = async () => {
+  const cargarEmpresas = async () => {
+    setLoading(true);
     try {
       const querySnapshot = await getDocs(collection(db, "usuarios"));
       const lista = [];
@@ -49,14 +55,37 @@ export default function AdminEmpresas() {
         }
       });
       setEmpresas(lista);
-    } catch {
+    } catch (error) {
+      console.error("Error al cargar empresas:", error);
       Swal.fire("Error", "No se pudieron cargar las empresas", "error");
     }
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchEmpresas();
+    cargarEmpresas();
   }, []);
+
+  // Filtrar empresas
+  useEffect(() => {
+    let filtradas = empresas;
+
+    // Filtro por estado
+    if (filtroEstado !== "todos") {
+      filtradas = filtradas.filter(
+        (empresa) => empresa.estado === filtroEstado
+      );
+    }
+
+    // Filtro por nombre
+    if (filtroNombre.trim()) {
+      filtradas = filtradas.filter((empresa) =>
+        empresa.nombre?.toLowerCase().includes(filtroNombre.toLowerCase())
+      );
+    }
+
+    setEmpresasFiltradas(filtradas);
+  }, [empresas, filtroEstado, filtroNombre]);
 
   // Validación de la contraseña
   const validarPassword = (contraseña) => {
@@ -83,48 +112,163 @@ export default function AdminEmpresas() {
     return true;
   };
 
-  const crearEmpresa = async (e) => {
+  const resetForm = () => {
+    setFormData({
+      nombre: "",
+      rut: "",
+      email: "",
+      telefono: "",
+      direccion: "",
+      password: "",
+    });
+    setEditarEmpresa(null);
+  };
+
+  const abrirModalCrear = () => {
+    resetForm();
+    setModalOpen(true);
+  };
+
+  const abrirModalEditar = (empresa) => {
+    setEditarEmpresa(empresa);
+    setFormData({
+      nombre: empresa.nombre || "",
+      rut: empresa.rut || "",
+      email: empresa.email || "",
+      telefono: empresa.telefono || "",
+      direccion: empresa.direccion || "",
+      password: "",
+    });
+    setModalOpen(true);
+  };
+
+  const cerrarModal = () => {
+    setModalOpen(false);
+    resetForm();
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const validarFormulario = () => {
+    if (!formData.nombre.trim()) {
+      Swal.fire("Error", "El nombre es obligatorio", "warning");
+      return false;
+    }
+    if (!formData.rut.trim()) {
+      Swal.fire("Error", "El RUT es obligatorio", "warning");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      Swal.fire("Error", "El email es obligatorio", "warning");
+      return false;
+    }
+    if (!formData.telefono.trim()) {
+      Swal.fire("Error", "El teléfono es obligatorio", "warning");
+      return false;
+    }
+    if (!formData.direccion.trim()) {
+      Swal.fire("Error", "La dirección es obligatoria", "warning");
+      return false;
+    }
+    if (
+      !editarEmpresa &&
+      (!formData.password || !validarPassword(formData.password))
+    ) {
+      return false;
+    }
+    if (
+      editarEmpresa &&
+      formData.password &&
+      !validarPassword(formData.password)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  const guardarEmpresa = async (e) => {
     e.preventDefault();
     if (loading) return;
 
-    if (!validarPassword(password)) return; // Verificamos la contraseña antes de proceder
+    if (!validarFormulario()) return;
 
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(
-        secondaryAuth,
-        email,
-        password
-      );
-      await sendEmailVerification(cred.user);
+      if (editarEmpresa) {
+        // Actualizar empresa existente
+        const empresaRef = doc(db, "usuarios", editarEmpresa.id);
+        const empresaDoc = await getDoc(empresaRef);
 
-      await setDoc(doc(db, "usuarios", cred.user.uid), {
-        nombre,
-        rut,
-        email,
-        telefono,
-        direccion,
-        tipo: "empresa",
-        estado: "activa",
-      });
+        if (!empresaDoc.exists()) {
+          Swal.fire("Error", "La empresa no existe", "error");
+          return;
+        }
 
-      await secondaryAuth.signOut();
+        const updates = {
+          nombre: formData.nombre.trim(),
+          rut: formData.rut.trim(),
+          telefono: formData.telefono.trim(),
+          direccion: formData.direccion.trim(),
+        };
 
-      Swal.fire(
-        "Empresa creada",
-        "Se envió un correo de verificación a la nueva empresa",
-        "success"
-      );
+        if (formData.password) {
+          await secondaryAuth.signOut();
+          const cred = await createUserWithEmailAndPassword(
+            secondaryAuth,
+            formData.email,
+            formData.password
+          );
+          await sendEmailVerification(cred.user);
+          updates.email = formData.email;
+        }
 
-      setNombre("");
-      setRut("");
-      setEmail("");
-      setTelefono("");
-      setDireccion("");
-      setPassword("");
-      fetchEmpresas();
+        await updateDoc(empresaRef, updates);
+        Swal.fire(
+          "Empresa actualizada",
+          "Los datos de la empresa han sido actualizados correctamente",
+          "success"
+        );
+
+        if (formData.password) await secondaryAuth.signOut();
+      } else {
+        // Crear nueva empresa
+        const cred = await createUserWithEmailAndPassword(
+          secondaryAuth,
+          formData.email,
+          formData.password
+        );
+        await sendEmailVerification(cred.user);
+
+        await setDoc(doc(db, "usuarios", cred.user.uid), {
+          nombre: formData.nombre.trim(),
+          rut: formData.rut.trim(),
+          email: formData.email.trim(),
+          telefono: formData.telefono.trim(),
+          direccion: formData.direccion.trim(),
+          tipo: "empresa",
+          estado: "activa",
+        });
+
+        await secondaryAuth.signOut();
+
+        Swal.fire(
+          "Empresa creada",
+          "Se envió un correo de verificación a la nueva empresa",
+          "success"
+        );
+      }
+
+      resetForm();
+      cargarEmpresas();
+      cerrarModal();
     } catch (error) {
-      let mensaje = "No se pudo crear la empresa";
+      let mensaje = "No se pudo guardar la empresa";
       if (error.code === "auth/email-already-in-use") {
         mensaje = "El correo ya está en uso";
       } else if (error.code === "auth/invalid-email") {
@@ -135,235 +279,431 @@ export default function AdminEmpresas() {
     setLoading(false);
   };
 
-  const eliminarEmpresa = async (id) => {
+  const eliminarEmpresa = async (empresa) => {
     const confirm = await Swal.fire({
       title: "¿Eliminar empresa?",
-      text: "Esta acción no se puede deshacer",
+      text: `¿Estás seguro de eliminar a "${empresa.nombre}"? Esta acción no se puede deshacer.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
+      confirmButtonColor: "#dc3545",
     });
+
     if (confirm.isConfirmed) {
       try {
-        await deleteDoc(doc(db, "usuarios", id));
-        fetchEmpresas();
+        await deleteDoc(doc(db, "usuarios", empresa.id));
         Swal.fire("Eliminada", "Empresa eliminada correctamente", "success");
-      } catch {
+        cargarEmpresas();
+      } catch (error) {
+        console.error("Error al eliminar empresa:", error);
         Swal.fire("Error", "No se pudo eliminar la empresa", "error");
       }
     }
   };
 
-  const openCreateModal = () => {
-    Swal.fire({
-      title: "Crear Empresa",
-      html: `
-        <form id="createEmpresaForm">
-          <input type="text" id="nombre" class="swal2-input" placeholder="Nombre" maxlength="40" required />
-          <input type="text" id="rut" class="swal2-input" placeholder="RUT" maxlength="40" required />
-          <input type="email" id="email" class="swal2-input" placeholder="Email" maxlength="40" required />
-          <input type="text" id="telefono" class="swal2-input" placeholder="Teléfono" maxlength="40" required />
-          <input type="text" id="direccion" class="swal2-input" placeholder="Dirección" maxlength="40" required />
-          <input type="password" id="password" class="swal2-input" placeholder="Contraseña" maxlength="40" required />
-        </form>
-      `,
-      focusConfirm: false,
-      preConfirm: () => {
-        const nombre = document.getElementById("nombre").value;
-        const rut = document.getElementById("rut").value;
-        const email = document.getElementById("email").value;
-        const telefono = document.getElementById("telefono").value;
-        const direccion = document.getElementById("direccion").value;
-        const password = document.getElementById("password").value;
-
-        setNombre(nombre);
-        setRut(rut);
-        setEmail(email);
-        setTelefono(telefono);
-        setDireccion(direccion);
-        setPassword(password);
-
-        crearEmpresa({ preventDefault: () => { } });
-      },
-    });
-  };
-
-  const openEditModal = async (empresa) => {
-    setEmpresaId(empresa.id);
-    setNombre(empresa.nombre);
-    setRut(empresa.rut);
-    setEmail(empresa.email);
-    setTelefono(empresa.telefono);
-    setDireccion(empresa.direccion);
-    setPassword(""); // Dejar la contraseña en blanco (porque no se debe editar de forma directa)
-
-    Swal.fire({
-      title: "Editar Empresa",
-      html: `
-        <form id="editEmpresaForm">
-          <input type="text" id="nombre" class="swal2-input" value="${empresa.nombre}" maxlength="40" minlength="8" required />
-          <input type="text" id="rut" class="swal2-input" value="${empresa.rut}" maxlength="40" minlength="8" required />
-          <input type="email" id="email" class="swal2-input" value="${empresa.email}" maxlength="40" minlength="8" required />
-          <input type="text" id="telefono" class="swal2-input" value="${empresa.telefono}" maxlength="40" minlength="8" required />
-          <input type="text" id="direccion" class="swal2-input" value="${empresa.direccion}" maxlength="40" minlength="8" required />
-          <input type="password" id="password" class="swal2-input" placeholder="Contraseña (opcional)" maxlength="40" minlength="8" />
-        </form>
-      `,
-      focusConfirm: false,
-      preConfirm: () => {
-        const nombre = document.getElementById("nombre").value;
-        const rut = document.getElementById("rut").value;
-        const email = document.getElementById("email").value;
-        const telefono = document.getElementById("telefono").value;
-        const direccion = document.getElementById("direccion").value;
-        const password = document.getElementById("password").value;
-
-        setNombre(nombre);
-        setRut(rut);
-        setEmail(email);
-        setTelefono(telefono);
-        setDireccion(direccion);
-        setPassword(password);
-
-        editarEmpresa();
-      },
-    });
-  };
-
-  const editarEmpresa = async () => {
-    if (loading) return;
-
-    if (!empresaId) {
-      Swal.fire("Error", "No se ha seleccionado una empresa para editar", "error");
-      return;
-    }
-
-    setLoading(true);
-
+  const cambiarEstado = async (empresa, nuevoEstado) => {
     try {
-      // Verificar si la empresa existe
-      const empresaRef = doc(db, "usuarios", empresaId);
-      const empresaDoc = await getDoc(empresaRef);
-
-      if (!empresaDoc.exists()) {
-        Swal.fire("Error", "La empresa no existe", "error");
-        return;
-      }
-
-      // Preparar la actualización de los datos
-      const updates = {
-        nombre,
-        rut,
-        email,
-        telefono,
-        direccion,
-      };
-
-      // Si la contraseña está presente y es válida, la incluimos en la actualización
-      if (password) {
-        if (!validarPassword(password)) {
-          setLoading(false);
-          return; // No procedemos si la contraseña no es válida
-        }
-        updates.password = password; // Actualizar la contraseña también si es válida
-      }
-
-      // Actualizamos el documento
-      await updateDoc(empresaRef, updates);
-
+      await updateDoc(doc(db, "usuarios", empresa.id), {
+        estado: nuevoEstado,
+      });
       Swal.fire(
-        "Empresa actualizada",
-        "Los datos de la empresa han sido actualizados correctamente",
+        "Éxito",
+        `Empresa ${
+          nuevoEstado === "activa" ? "activada" : "desactivada"
+        } correctamente`,
         "success"
       );
-
-      // Limpiamos el formulario y estado
-      setEmpresaId(null);
-      setNombre("");
-      setRut("");
-      setEmail("");
-      setTelefono("");
-      setDireccion("");
-      setPassword(""); // Reseteamos la contraseña
-
-      fetchEmpresas(); // Recargamos la lista de empresas
-
+      cargarEmpresas();
     } catch (error) {
-      console.error("Error al actualizar la empresa:", error);
-      Swal.fire("Error", "No se pudo actualizar la empresa. Intenta nuevamente", "error");
+      console.error("Error al cambiar estado:", error);
+      Swal.fire("Error", "No se pudo cambiar el estado de la empresa", "error");
     }
-
-    setLoading(false);
   };
 
+  const getEstadoBadge = (estado) => {
+    return estado === "activa" ? (
+      <span className="badge bg-success">Activa</span>
+    ) : (
+      <span className="badge bg-warning text-dark">Inactiva</span>
+    );
+  };
 
   return (
     <div className="container mt-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestión de Empresas</h2>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate("/admin/dashboard")}
-        >
-          Volver al Panel Principal
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={openCreateModal}
-        >
-          Crear Empresa
-        </button>
+      <div className="card shadow">
+        <div className="card-header bg-info text-white">
+          <div className="d-flex justify-content-between align-items-center">
+            <h3 className="mb-0">
+              <i className="fas fa-building me-2"></i>
+              Gestión de Empresas
+            </h3>
+            <button
+              className="btn btn-light btn-sm"
+              onClick={() => navigate("/admin/dashboard")}
+            >
+              <i className="fas fa-arrow-left me-1"></i>
+              Volver al Panel Principal
+            </button>
+          </div>
+        </div>
+
+        <div className="card-body">
+          {/* Filtros */}
+          <div className="row mb-4">
+            <div className="col-md-4 mb-2">
+              <label className="form-label fw-bold">
+                <i className="fas fa-filter me-1"></i>
+                Filtrar por Estado
+              </label>
+              <select
+                className="form-select"
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+              >
+                <option value="todos">Todas las empresas</option>
+                <option value="activa">Activas</option>
+                <option value="inactiva">Inactivas</option>
+              </select>
+            </div>
+            <div className="col-md-4 mb-2">
+              <label className="form-label fw-bold">
+                <i className="fas fa-search me-1"></i>
+                Buscar por nombre
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nombre de la empresa..."
+                value={filtroNombre}
+                onChange={(e) => setFiltroNombre(e.target.value)}
+              />
+            </div>
+            <div className="col-md-4 mb-2 d-flex align-items-end">
+              <button
+                className="btn btn-info text-white w-100"
+                onClick={abrirModalCrear}
+                disabled={loading}
+              >
+                <i className="fas fa-plus me-1"></i>
+                Crear Empresa
+              </button>
+            </div>
+          </div>
+
+          {/* Tabla de empresas */}
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="spinner-border text-info" role="status">
+                <span className="visually-hidden">Cargando...</span>
+              </div>
+              <p className="mt-2">Cargando empresas...</p>
+            </div>
+          ) : empresasFiltradas.length === 0 ? (
+            <div className="text-center py-4">
+              <i className="fas fa-building fa-3x text-muted mb-3"></i>
+              <h5 className="text-muted">
+                {empresas.length === 0
+                  ? "No hay empresas registradas"
+                  : "No se encontraron empresas con los filtros aplicados"}
+              </h5>
+              {empresas.length === 0 && (
+                <button
+                  className="btn btn-info text-white"
+                  onClick={abrirModalCrear}
+                >
+                  <i className="fas fa-plus me-1"></i>
+                  Crear tu primera empresa
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead className="table-dark">
+                  <tr>
+                    <th>Nombre</th>
+                    <th>RUT</th>
+                    <th>Email</th>
+                    <th>Estado</th>
+                    <th>Información de Contacto</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {empresasFiltradas.map((empresa) => (
+                    <tr key={empresa.id}>
+                      <td className="fw-bold">{empresa.nombre}</td>
+                      <td>{empresa.rut}</td>
+                      <td>{empresa.email}</td>
+                      <td>{getEstadoBadge(empresa.estado)}</td>
+                      <td>
+                        <div className="small">
+                          {empresa.telefono && (
+                            <div>
+                              <i className="fas fa-phone me-1"></i>
+                              {empresa.telefono}
+                            </div>
+                          )}
+                          {empresa.direccion && (
+                            <div>
+                              <i className="fas fa-map-marker-alt me-1"></i>
+                              {empresa.direccion}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="btn-group btn-group-sm">
+                          <button
+                            className="btn btn-outline-primary"
+                            onClick={() => abrirModalEditar(empresa)}
+                            title="Editar empresa"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          {empresa.estado === "activa" ? (
+                            <button
+                              className="btn btn-outline-warning"
+                              onClick={() => cambiarEstado(empresa, "inactiva")}
+                              title="Desactivar empresa"
+                            >
+                              <i className="fas fa-ban"></i>
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-outline-success"
+                              onClick={() => cambiarEstado(empresa, "activa")}
+                              title="Activar empresa"
+                            >
+                              <i className="fas fa-check"></i>
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-outline-danger"
+                            onClick={() => eliminarEmpresa(empresa)}
+                            title="Eliminar empresa"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Estadísticas */}
+          {empresasFiltradas.length > 0 && (
+            <div className="mt-3 p-3 bg-light rounded">
+              <div className="row text-center">
+                <div className="col-md-4">
+                  <h6 className="text-muted">Total empresas</h6>
+                  <h4 className="text-info">{empresasFiltradas.length}</h4>
+                </div>
+                <div className="col-md-4">
+                  <h6 className="text-muted">Activas</h6>
+                  <h4 className="text-success">
+                    {
+                      empresasFiltradas.filter((e) => e.estado === "activa")
+                        .length
+                    }
+                  </h4>
+                </div>
+                <div className="col-md-4">
+                  <h6 className="text-muted">Inactivas</h6>
+                  <h4 className="text-warning">
+                    {
+                      empresasFiltradas.filter((e) => e.estado === "inactiva")
+                        .length
+                    }
+                  </h4>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="table-responsive">
-        <table className="table table-bordered align-middle">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>RUT</th>
-              <th>Email</th>
-              <th>Teléfono</th>
-              <th>Dirección</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {empresas.map((emp) => (
-              <tr key={emp.id}>
-                <td>{emp.nombre}</td>
-                <td>{emp.rut}</td>
-                <td>{emp.email}</td>
-                <td>{emp.telefono}</td>
-                <td>{emp.direccion}</td>
-                <td>
+      {/* Modal para crear/editar empresa */}
+      {modalOpen && (
+        <div
+          className="modal show d-block"
+          tabIndex="-1"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header bg-info text-white">
+                <h5 className="modal-title">
+                  <i className="fas fa-building me-2"></i>
+                  {editarEmpresa ? "Editar Empresa" : "Crear Nueva Empresa"}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={cerrarModal}
+                  disabled={loading}
+                ></button>
+              </div>
+
+              <form onSubmit={guardarEmpresa}>
+                <div className="modal-body">
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">
+                        <i className="fas fa-building me-1"></i>
+                        Nombre de la Empresa *
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="nombre"
+                        value={formData.nombre}
+                        onChange={handleInputChange}
+                        required
+                        maxLength={50}
+                        disabled={loading}
+                      />
+                      <small className="text-muted">Máximo 50 caracteres</small>
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">
+                        <i className="fas fa-id-card me-1"></i>
+                        RUT *
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="rut"
+                        value={formData.rut}
+                        onChange={handleInputChange}
+                        required
+                        maxLength={12}
+                        disabled={loading}
+                      />
+                      <small className="text-muted">Máximo 12 caracteres</small>
+                    </div>
+                  </div>
+
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">
+                        <i className="fas fa-envelope me-1"></i>
+                        Correo Electrónico *
+                      </label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                        maxLength={50}
+                        disabled={loading || editarEmpresa !== null}
+                      />
+                      <small className="text-muted">Máximo 50 caracteres</small>
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">
+                        <i className="fas fa-phone me-1"></i>
+                        Teléfono *
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="telefono"
+                        value={formData.telefono}
+                        onChange={handleInputChange}
+                        required
+                        maxLength={15}
+                        disabled={loading}
+                      />
+                      <small className="text-muted">Máximo 15 caracteres</small>
+                    </div>
+                  </div>
+
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">
+                        <i className="fas fa-map-marker-alt me-1"></i>
+                        Dirección *
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="direccion"
+                        value={formData.direccion}
+                        onChange={handleInputChange}
+                        required
+                        maxLength={100}
+                        disabled={loading}
+                      />
+                      <small className="text-muted">
+                        Máximo 100 caracteres
+                      </small>
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">
+                        <i className="fas fa-lock me-1"></i>
+                        Contraseña {editarEmpresa ? "(opcional)" : "*"}
+                      </label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        minLength={editarEmpresa ? 0 : 8}
+                        disabled={loading}
+                      />
+                      <small className="text-muted">
+                        {editarEmpresa
+                          ? "Deja en blanco para mantener la actual"
+                          : "Mínimo 8 caracteres con mayúscula, minúscula, número y símbolo"}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer">
                   <button
-                    className="btn btn-warning btn-sm"
-                    onClick={() => openEditModal(emp)}
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={cerrarModal}
                     disabled={loading}
                   >
-                    Editar
+                    <i className="fas fa-times me-1"></i>
+                    Cancelar
                   </button>
                   <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => eliminarEmpresa(emp.id)}
+                    type="submit"
+                    className="btn btn-info text-white"
                     disabled={loading}
                   >
-                    Eliminar
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-1"></span>
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-save me-1"></i>
+                        {editarEmpresa ? "Actualizar" : "Crear"} Empresa
+                      </>
+                    )}
                   </button>
-                </td>
-              </tr>
-            ))}
-            {empresas.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center">
-                  No hay empresas registradas
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

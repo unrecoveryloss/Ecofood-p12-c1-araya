@@ -1,31 +1,31 @@
 import { useEffect, useState } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useAuth } from "../context/AuthContext";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
-export default function EmpresaPerfil() {
+export default function ClientePerfil() {
   const { user, userData } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState(false);
   const [formData, setFormData] = useState({
     nombre: "",
-    rut: "",
     email: "",
-    telefono: "",
     direccion: "",
+    comuna: "",
+    telefono: "",
   });
 
   useEffect(() => {
     if (userData) {
       setFormData({
         nombre: userData.nombre || "",
-        rut: userData.rut || "",
         email: userData.email || "",
-        telefono: userData.telefono || "",
         direccion: userData.direccion || "",
+        comuna: userData.comuna || "",
+        telefono: userData.telefono || "",
       });
     }
   }, [userData]);
@@ -45,10 +45,10 @@ export default function EmpresaPerfil() {
   const cancelarEdicion = () => {
     setFormData({
       nombre: userData.nombre || "",
-      rut: userData.rut || "",
       email: userData.email || "",
-      telefono: userData.telefono || "",
       direccion: userData.direccion || "",
+      comuna: userData.comuna || "",
+      telefono: userData.telefono || "",
     });
     setEditando(false);
   };
@@ -58,22 +58,25 @@ export default function EmpresaPerfil() {
 
     if (
       !formData.nombre.trim() ||
-      !formData.rut.trim() ||
-      !formData.telefono.trim() ||
-      !formData.direccion.trim()
+      !formData.direccion.trim() ||
+      !formData.comuna
     ) {
-      Swal.fire("Error", "Todos los campos son obligatorios", "warning");
+      Swal.fire(
+        "Error",
+        "Los campos nombre, dirección y comuna son obligatorios",
+        "warning"
+      );
       return;
     }
 
     setLoading(true);
     try {
-      const empresaRef = doc(db, "usuarios", user.uid);
-      await updateDoc(empresaRef, {
+      const clienteRef = doc(db, "usuarios", user.uid);
+      await updateDoc(clienteRef, {
         nombre: formData.nombre.trim(),
-        rut: formData.rut.trim(),
-        telefono: formData.telefono.trim(),
         direccion: formData.direccion.trim(),
+        comuna: formData.comuna,
+        telefono: formData.telefono.trim(),
       });
 
       Swal.fire("Éxito", "Perfil actualizado correctamente", "success");
@@ -92,7 +95,10 @@ export default function EmpresaPerfil() {
     return (
       <div className="container mt-5">
         <div className="text-center">
-          <p>Cargando datos del perfil...</p>
+          <div className="spinner-border text-success" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <p className="mt-2">Cargando datos del perfil...</p>
         </div>
       </div>
     );
@@ -103,15 +109,15 @@ export default function EmpresaPerfil() {
       <div className="row justify-content-center">
         <div className="col-md-8">
           <div className="card shadow">
-            <div className="card-header bg-primary text-white">
+            <div className="card-header bg-success text-white">
               <div className="d-flex justify-content-between align-items-center">
                 <h3 className="mb-0">
-                  <i className="fas fa-building me-2"></i>
-                  Perfil de Empresa
+                  <i className="fas fa-user-friends me-2"></i>
+                  Mi Perfil de Cliente
                 </h3>
                 <button
                   className="btn btn-light btn-sm"
-                  onClick={() => navigate("/empresa/dashboard")}
+                  onClick={() => navigate("/cliente/dashboard")}
                 >
                   <i className="fas fa-arrow-left me-1"></i>
                   Volver al Panel
@@ -124,8 +130,8 @@ export default function EmpresaPerfil() {
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-bold">
-                      <i className="fas fa-signature me-1"></i>
-                      Nombre de la Empresa
+                      <i className="fas fa-user me-1"></i>
+                      Nombre Completo
                     </label>
                     <input
                       type="text"
@@ -140,26 +146,6 @@ export default function EmpresaPerfil() {
                     <small className="text-muted">Máximo 50 caracteres</small>
                   </div>
 
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">
-                      <i className="fas fa-id-card me-1"></i>
-                      RUT
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="rut"
-                      value={formData.rut}
-                      onChange={handleInputChange}
-                      disabled={!editando}
-                      maxLength={12}
-                      required
-                    />
-                    <small className="text-muted">Máximo 12 caracteres</small>
-                  </div>
-                </div>
-
-                <div className="row">
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-bold">
                       <i className="fas fa-envelope me-1"></i>
@@ -178,11 +164,13 @@ export default function EmpresaPerfil() {
                       El correo no se puede modificar por seguridad
                     </small>
                   </div>
+                </div>
 
+                <div className="row">
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-bold">
                       <i className="fas fa-phone me-1"></i>
-                      Teléfono
+                      Teléfono (opcional)
                     </label>
                     <input
                       type="text"
@@ -192,9 +180,40 @@ export default function EmpresaPerfil() {
                       onChange={handleInputChange}
                       disabled={!editando}
                       maxLength={15}
-                      required
                     />
                     <small className="text-muted">Máximo 15 caracteres</small>
+                  </div>
+
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label fw-bold">
+                      <i className="fas fa-map me-1"></i>
+                      Comuna
+                    </label>
+                    <select
+                      className="form-select"
+                      name="comuna"
+                      value={formData.comuna}
+                      onChange={handleInputChange}
+                      disabled={!editando}
+                      required
+                    >
+                      <option value="">Selecciona una comuna...</option>
+                      <option value="Andacollo">Andacollo</option>
+                      <option value="Coquimbo">Coquimbo</option>
+                      <option value="La Higuera">La Higuera</option>
+                      <option value="La Serena">La Serena</option>
+                      <option value="Paihuano">Paihuano</option>
+                      <option value="Vicuña">Vicuña</option>
+                      <option value="Combarbalá">Combarbalá</option>
+                      <option value="Monte Patria">Monte Patria</option>
+                      <option value="Ovalle">Ovalle</option>
+                      <option value="Punitaqui">Punitaqui</option>
+                      <option value="Río Hurtado">Río Hurtado</option>
+                      <option value="Canela">Canela</option>
+                      <option value="Illapel">Illapel</option>
+                      <option value="Los Vilos">Los Vilos</option>
+                      <option value="Salamanca">Salamanca</option>
+                    </select>
                   </div>
                 </div>
 
@@ -220,7 +239,7 @@ export default function EmpresaPerfil() {
                   {!editando ? (
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className="btn btn-success"
                       onClick={iniciarEdicion}
                     >
                       <i className="fas fa-edit me-1"></i>
@@ -258,6 +277,30 @@ export default function EmpresaPerfil() {
                   )}
                 </div>
               </form>
+
+              {/* Información adicional */}
+              <div className="mt-4">
+                <div className="alert alert-info">
+                  <h6 className="alert-heading">
+                    <i className="fas fa-info-circle me-2"></i>
+                    Información Importante
+                  </h6>
+                  <ul className="mb-0">
+                    <li>
+                      Mantén actualizada tu información de contacto para recibir
+                      notificaciones sobre tus solicitudes.
+                    </li>
+                    <li>
+                      La dirección y comuna son importantes para coordinar la
+                      entrega de productos aprobados.
+                    </li>
+                    <li>
+                      El correo electrónico no se puede modificar por motivos de
+                      seguridad.
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>

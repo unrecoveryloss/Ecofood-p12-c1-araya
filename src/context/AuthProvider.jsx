@@ -39,7 +39,23 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return <div>Cargando autenticación...</div>;
+  if (loading) {
+    return (
+      <div className="container-fluid vh-100 d-flex align-items-center justify-content-center">
+        <div className="text-center">
+          <div
+            className="spinner-border text-primary"
+            role="status"
+            style={{ width: "3rem", height: "3rem" }}
+          >
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <h5 className="mt-3 text-muted">Inicializando EcoFood...</h5>
+          <p className="text-muted">Cargando configuración del sistema</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, userData, loading }}>
